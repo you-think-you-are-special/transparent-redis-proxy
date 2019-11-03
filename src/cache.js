@@ -1,17 +1,21 @@
 const LRUMap = require('mnemonist/lru-map')
 
 class Cache {
-  #expire
+  #expireMs
 
   #cache
 
   /**
    * @param {number} capacity
-   * @param {number} expire
+   * @param {number} expireMs
    */
-  constructor ({ capacity, expire }) {
-    this.#expire = expire
+  constructor ({ capacity, expireMs }) {
+    this.#expireMs = expireMs
     this.#cache = new LRUMap(capacity)
+  }
+
+  toString () {
+    return JSON.stringify(this.#cache)
   }
 
   /**
@@ -23,7 +27,7 @@ class Cache {
       key,
       {
         value,
-        createdAt: Date.now()
+        dueDate: Date.now() + this.#expireMs
       }
     )
   }
@@ -34,7 +38,11 @@ class Cache {
    */
   find (key) {
     const value = this.#cache.get(key)
-    if (value === undefined || value.createdAt >= Date.now()) {
+    if (value === undefined) {
+      return
+    }
+
+    if (value.dueDate < Date.now()) {
       this.splayOnBottom(key)
       return
     }

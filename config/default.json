@@ -29,7 +29,7 @@
     }
   },
   "cache": {
-    "expiryMs": 480000,
+    "expiryMs": 60000,
     "capacity": 1000
   }
 }

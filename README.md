@@ -37,7 +37,6 @@ When multiple clients make concurrent requests to the proxy, it will execute a n
 * Docker and docker-compose for run
 
 # Future work
-* The same concurrent requests should wait for cache ready 
 * Extend RESP parser for better memory consumption
 * Choose the best LRU implementation based on real data
 * Modify back pressure mechanism where relevant
@@ -47,6 +46,7 @@ When multiple clients make concurrent requests to the proxy, it will execute a n
 * Whitelist of commands (all blocking commands should be prohibited)
 * More tests (init, end-to-end, benchmarks)
 * Rate limit
+* [Better logging](https://12factor.net/logs)
 
 # Some helpful articles which I used
 * [LRU benchmarks](https://github.com/dominictarr/bench-lru)
@@ -57,4 +57,4 @@ When multiple clients make concurrent requests to the proxy, it will execute a n
 * [2Q: A Low Overhead High Performance Buffer Management Replacement Algorithm ](http://www.vldb.org/conf/1994/P439.PDF)
 * [Expiring records: Redis ttl, guava cache](https://yesteapea.com/2016/06/02/Expiring-Records.html)
 * [Redis protocol](https://redis.io/topics/protocol)
-* [Backpressuring in streams](https://nodejs.org/es/docs/guides/backpressuring-in-streams/)
+* [Back pressuring in streams](https://nodejs.org/es/docs/guides/backpressuring-in-streams/)

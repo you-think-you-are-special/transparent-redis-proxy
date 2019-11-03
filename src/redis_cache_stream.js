@@ -1,6 +1,23 @@
 const { Transform } = require('stream')
-const Parser = require('redis-parser') // @todo: better parser
+const Parser = require('redis-parser') // @todo: extend parser for better memory consumption
 const zeroBuffer = Buffer.allocUnsafe(0)
+const { EventEmitter } = require('events')
+
+const events = new EventEmitter()
+events.setMaxListeners(0)
+
+const alreadyRequestedKeysMap = new Map() // @todo: add expire for keys
+
+const parserCommonParams = {
+  returnError (err) {
+    console.error('returnError', err)
+  },
+  returnFatalError (err) {
+    console.error('returnFatalError', err)
+  },
+  returnBuffers: true,
+  stringNumbers: true
+}
 
 class RedisCacheStream extends Transform {
   #pool
@@ -10,6 +27,7 @@ class RedisCacheStream extends Transform {
   #cacheKey = ''
   #buffer = zeroBuffer
   #cmd = ''
+  #cacheSubscriptionKey = ''
 
   /**
    * @param {RedisPool} pool
@@ -34,34 +52,47 @@ class RedisCacheStream extends Transform {
 
     this.#requestParser = new Parser({
       returnReply (reply) {
-        if (!reply[0].equals(self.#cmd) || reply.length !== 2) { // proxy other commands
-          self.writeBufferToRedis(reply)
+        // @todo: move criteria to config
+        if (!reply[0].equals(self.#cmd) || reply.length !== 2) {
+          self.writeBufferToRedis(reply) // proxy other commands
           return
         }
 
         const key = reply[1].toString()
         const res = cache.find(key)
         if (res !== undefined) {
-          console.info('cache hit')
-          console.info('answer to client from cache')
-          self.push(res)
-          console.info('emit done')
-          self.emit('done')
+          self.responseFromCache(res)
           return
         }
 
+        if (alreadyRequestedKeysMap.has(key)) {
+          self.#cacheSubscriptionKey = `key_ready_${key}`
+          events.once(self.#cacheSubscriptionKey, self.responseFromCache.bind(self))
+          return
+        }
+
+        alreadyRequestedKeysMap.set(key, [])
         self.#cacheKey = key
         self.writeBufferToRedis(reply)
       },
-      returnError (err) {
-        console.error('returnError', err)
-      },
-      returnFatalError (err) {
-        console.error('returnFatalError', err)
-      },
-      returnBuffers: true,
-      stringNumbers: true
+      ...parserCommonParams
     })
+  }
+
+  /**
+   * @param {Buffer} buffer
+   * @private
+   */
+  responseFromCache (buffer) {
+    if (this.#cacheSubscriptionKey.length > 0) {
+      alreadyRequestedKeysMap.delete(this.#cacheSubscriptionKey)
+      this.#cacheSubscriptionKey = ''
+    }
+
+    console.info('cache hit')
+    console.info('answer to client from cache')
+    this.push(buffer)
+    this.emit('done')
   }
 
   /**
@@ -79,6 +110,8 @@ class RedisCacheStream extends Transform {
         if (self.#cacheKey.length > 0) {
           console.info(`save key: ${self.#cacheKey} into cache`)
           cache.save(self.#cacheKey, self.#buffer)
+          events.emit(`key_ready_${self.#cacheKey}`, self.#buffer)
+          alreadyRequestedKeysMap.delete(self.#cacheKey)
           self.#cacheKey = ''
         }
 
@@ -87,14 +120,7 @@ class RedisCacheStream extends Transform {
         self.#buffer = zeroBuffer
         self.emit('done')
       },
-      returnError (err) {
-        console.error('returnError', err)
-      },
-      returnFatalError (err) {
-        console.error('returnFatalError', err)
-      },
-      returnBuffers: true,
-      stringNumbers: true
+      ...parserCommonParams
     })
   }
 
@@ -112,6 +138,17 @@ class RedisCacheStream extends Transform {
   }
 
   /**
+   * @private
+   */
+  _final (callback) {
+    if (this.#cacheSubscriptionKey) {
+      events.removeListener(this.#cacheSubscriptionKey, this.responseFromCache)
+      alreadyRequestedKeysMap.delete(this.#cacheSubscriptionKey)
+    }
+    callback()
+  }
+
+  /**
    * @param {Array} reply
    * @private
    */
@@ -120,7 +157,7 @@ class RedisCacheStream extends Transform {
       .then(connection => {
         console.debug('connection acquired')
         console.debug('send request to redis')
-        connection.write(this.#buffer) // @todo: back pressure
+        connection.write(this.#buffer) // @todo: respect back pressure
         this.#buffer = zeroBuffer
 
         connection.on('data', chunk => {

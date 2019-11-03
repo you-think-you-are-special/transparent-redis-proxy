@@ -36,6 +36,8 @@ const { RedisCacheStream } = require('./redis_cache_stream');
 
   process.on('SIGINT', exitHandler)
   process.on('SIGTERM', exitHandler)
+  process.on('SIGHUP', exitHandler)
+  process.on('SIGBREAK', exitHandler)
 
   await server.listen()
 })()

@@ -32,12 +32,7 @@ class RedisPool extends EventEmitter {
    */
   async acquire () {
     console.debug('acquire new connection')
-    const mayBeConnection = await this.#genericPool.acquire()
-    if (mayBeConnection instanceof Error) {
-      console.error(mayBeConnection)
-    }
-
-    return mayBeConnection
+    return this.#genericPool.acquire()
   }
 
   /**

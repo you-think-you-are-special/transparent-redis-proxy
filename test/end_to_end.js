@@ -31,18 +31,18 @@ describe('proxy', function () {
     })
   })
 
-  it('get empty key', async function () {
+  it('should get empty key', async function () {
     const res = await this.connections[0].getAsync('emptyKey')
     assert.strictEqual(res, null)
   })
 
-  it('get/set', async function () {
+  it('should set and get one key', async function () {
     await this.connections[0].setAsync('key', 'test')
     const res = await this.connections[0].getAsync('key')
     assert.strictEqual(res, 'test')
   })
 
-  it('concurrent clients with same keys', async function () {
+  it('should work with concurrent clients with same keys', async function () {
     await this.connections[0].setAsync('key1', 'test')
     const promises = this.connections.map(connection => connection.getAsync('key1'))
     const res = await Promise.all(promises)
@@ -50,7 +50,7 @@ describe('proxy', function () {
     assert(res.every(val => val === 'test'))
   })
 
-  it('concurrent clients with different keys', async function () {
+  it('should work with concurrent clients with different keys', async function () {
     const promises = this.connections
       .map(async (connection, i) => {
         await connection.setAsync(`d_key${i}`, i)
