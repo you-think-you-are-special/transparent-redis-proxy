@@ -1,0 +1,20 @@
+version: '3'
+services:
+  proxy:
+    build: .
+    container_name: proxy
+    environment:
+      NODE_ENV: production
+      NODE_CONFIG_ENV: docker_compose
+    depends_on:
+      - redis
+    command: node .
+    networks:
+      - proxy
+  redis:
+    container_name: redis
+    image: "redis"
+    networks:
+      - proxy
+networks:
+  proxy:
