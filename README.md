@@ -44,7 +44,7 @@ When multiple clients make concurrent requests to the proxy, it will execute a n
 * Liveness and readiness probes for cloud environment
 * Graceful restart
 * Whitelist of commands (all blocking commands should be prohibited)
-* More tests (init, end-to-end, benchmarks)
+* More tests (unit, end-to-end, benchmarks)
 * Rate limit
 * [Better logging](https://12factor.net/logs)
 
