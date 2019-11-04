@@ -56,15 +56,16 @@ class Cache {
    */
   splayOnBottom (key) {
     const cache = this.#cache
-    const pointer = cache.items[key]
+    const pointer = cache.items.get(key)
+
     if (cache.tail === pointer) {
       return
     }
 
     const oldTail = cache.tail
 
-    const previous = cache.backward[pointer],
-      next = cache.forward[pointer]
+    const previous = cache.backward[pointer]
+    const next = cache.forward[pointer]
 
     cache.backward[next] = previous
     cache.forward[previous] = next
